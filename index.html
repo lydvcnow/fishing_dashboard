@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>钓点天气 · 湾区</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --deep: #051820;
+    --foam: #b8dce8;
+    --wave: #4fa3c0;
+    --gold: #e8c06a;
+    --amber: #d4872a;
+    --green: #5eb87a;
+    --red: #e07060;
+    --text: #d8eef6;
+    --muted: #7aadc0;
+    --border: rgba(79, 163, 192, 0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--deep);
+    color: var(--text);
+    font-family: 'Noto Serif SC', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 20% 80%, rgba(10,42,58,0.8) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(5,24,32,0.9) 0%, transparent 50%),
+                linear-gradient(180deg, #051820 0%, #0a2a3a 40%, #0d3347 100%);
+    z-index: -1;
+  }
+
+  /* HEADER */
+  header {
+    padding: 1.8rem 1.5rem 1.2rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-fish { font-size: 1.8rem; display: block; margin-bottom: 0.3rem; filter: drop-shadow(0 0 10px rgba(79,163,192,0.5)); }
+  h1 { font-size: 1.55rem; font-weight: 700; color: var(--foam); letter-spacing: 0.08em; }
+  #last-updated { color: var(--muted); font-size: 0.72rem; margin-top: 0.3rem; font-family: 'JetBrains Mono', monospace; }
+
+  /* DATE STRIP */
+  .date-strip {
+    display: flex; gap: 0.45rem; overflow-x: auto;
+    padding: 1rem 1.2rem; border-bottom: 1px solid var(--border);
+    scrollbar-width: none; justify-content: center; flex-wrap: wrap;
+  }
+  .date-strip::-webkit-scrollbar { display: none; }
+
+  .date-btn {
+    flex-shrink: 0; background: transparent;
+    border: 1px solid var(--border); color: var(--muted);
+    border-radius: 3px; padding: 0.38rem 0.7rem;
+    cursor: pointer; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.73rem; transition: all 0.15s; text-align: center; min-width: 50px;
+  }
+  .date-btn .dn { display: block; font-size: 0.62rem; margin-bottom: 1px; }
+  .date-btn .dd { display: block; font-size: 0.88rem; color: var(--text); }
+  .date-btn:hover { border-color: var(--wave); color: var(--wave); }
+  .date-btn.active { border-color: var(--gold); background: rgba(232,192,106,0.1); }
+  .date-btn.active .dn, .date-btn.active .dd { color: var(--gold); }
+  .date-btn.today .dn::after { content: ' 今'; color: var(--green); }
+
+  .refresh-btn {
+    background: transparent; border: 1px solid var(--wave); color: var(--wave);
+    padding: 0.38rem 1.1rem; border-radius: 2px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    letter-spacing: 0.07em; transition: all 0.2s; margin: 0.7rem auto 0; display: block;
+  }
+  .refresh-btn:hover { background: var(--wave); color: var(--deep); }
+  .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* GRID */
+  .spots-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(285px, 1fr));
+    gap: 1.1rem; padding: 1.3rem 1.1rem; max-width: 1300px; margin: 0 auto;
+  }
+
+  /* CARD */
+  .spot-card {
+    background: linear-gradient(135deg, rgba(13,51,71,0.85) 0%, rgba(10,42,58,0.92) 100%);
+    border: 1px solid var(--border); border-radius: 4px; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .spot-card:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(0,0,0,0.38); }
+
+  .spot-header {
+    padding: 0.9rem 1.1rem 0.75rem; border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;
+  }
+  .spot-name { font-size: 1rem; font-weight: 700; color: var(--foam); }
+  .spot-name-en { font-size: 0.65rem; color: var(--muted); font-family: 'JetBrains Mono', monospace; margin-top: 0.08rem; }
+
+  .score-badge {
+    flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace; border: 2px solid currentColor; font-size: 0.85rem;
+  }
+  .score-badge .sl { font-size: 0.46rem; letter-spacing: 0.04em; margin-top: 1px; }
+  .score-great { color: var(--green); } .score-good { color: var(--gold); }
+  .score-fair  { color: var(--amber); } .score-poor  { color: var(--red); }
+
+  .spot-body { padding: 0.9rem 1.1rem; }
+
+  .data-row { display: flex; align-items: flex-start; margin-bottom: 0.7rem; gap: 0.55rem; }
+  .data-row:last-child { margin-bottom: 0; }
+  .data-icon { font-size: 0.95rem; width: 1.3rem; flex-shrink: 0; text-align: center; margin-top: 0.05rem; }
+  .data-content { flex: 1; }
+  .data-label { font-size: 0.64rem; color: var(--muted); letter-spacing: 0.06em; font-family: 'JetBrains Mono', monospace; margin-bottom: 0.08rem; }
+  .data-value { font-size: 0.87rem; color: var(--text); line-height: 1.45; }
+  .data-value .hi   { color: var(--gold); font-weight: 600; }
+  .data-value .ok   { color: var(--green); }
+  .data-value .warn { color: var(--amber); }
+  .data-value .bad  { color: var(--red); }
+
+  /* tide pills */
+  .tide-list { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.22rem; }
+  .tide-pill {
+    background: rgba(79,163,192,0.08); border: 1px solid rgba(79,163,192,0.25);
+    border-radius: 2px; padding: 0.15rem 0.4rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--wave);
+  }
+  .tide-pill.high { border-color: rgba(232,192,106,0.4); color: var(--gold); background: rgba(232,192,106,0.07); }
+
+  /* BEST WINDOWS */
+  .windows-section {
+    margin-top: 0.8rem; padding-top: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+  .windows-label {
+    font-size: 0.64rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.06em; margin-bottom: 0.45rem;
+  }
+  .window-row {
+    display: flex; align-items: baseline; gap: 0.45rem;
+    margin-bottom: 0.38rem; line-height: 1.5;
+  }
+  .window-time {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    color: var(--wave); min-width: 105px; flex-shrink: 0;
+  }
+  .window-time.pm   { color: var(--wave); }
+  .window-time.eve  { color: var(--green); }
+  .window-time.best { color: var(--gold); }
+  .window-stars { color: var(--gold); font-size: 0.68rem; letter-spacing: -1px; flex-shrink: 0; }
+  .window-desc { font-size: 0.78rem; color: var(--text); }
+  .window-meta { font-size: 0.68rem; color: var(--muted); margin-left: 0.2rem; }
+  .tag-eve  { font-size: 0.65rem; color: var(--green); margin-left: 0.2rem; }
+  .tag-pm   { font-size: 0.65rem; color: var(--wave);  margin-left: 0.2rem; }
+  .tag-night{ font-size: 0.65rem; color: var(--muted); margin-left: 0.2rem; }
+
+  .summary-bar {
+    margin-top: 0.8rem; padding: 0.55rem 0.85rem;
+    background: rgba(0,0,0,0.2); border-left: 3px solid var(--wave);
+    font-size: 0.8rem; color: var(--foam); line-height: 1.6;
+  }
+
+  .loading-state { padding: 2rem 1.1rem; text-align: center; color: var(--muted); font-size: 0.88rem; }
+  .loading-dots::after { content:''; animation: dots 1.5s steps(4,end) infinite; }
+  @keyframes dots { 0%,20%{content:''}25%,45%{content:'.'}50%,70%{content:'..'}75%,95%{content:'...'} }
+  .error-state {
+    padding: 0.9rem 1.1rem; color: var(--red); font-size: 0.8rem;
+    background: rgba(224,112,96,0.07); border-left: 3px solid var(--red); margin: 0.4rem;
+  }
+
+  footer {
+    text-align: center; padding: 1.1rem; color: var(--muted); font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace; border-top: 1px solid var(--border); letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 480px) {
+    .spots-grid { padding: 0.9rem 0.7rem; gap: 0.9rem; }
+    h1 { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="header-fish">🎣</span>
+  <h1>湾区钓点天气</h1>
+  <div id="last-updated">选日期加载</div>
+</header>
+
+<div class="date-strip" id="dateStrip"></div>
+<button class="refresh-btn" id="refreshBtn" onclick="loadAllSpots()">↻ 刷新</button>
+
+<div class="spots-grid" id="spotsGrid"></div>
+
+<footer>天气/海浪：Open-Meteo · 潮汐：NOAA CO-OPS · 时区：America/Los_Angeles</footer>
+
+<script>
+const SPOTS = [
+  { name:"半月湾",      nameEn:"Half Moon Bay",         lat:37.4636, lon:-122.4286, noaa:"9414290", bay:false },
+  { name:"圣克鲁斯码头", nameEn:"Santa Cruz Wharf",       lat:36.9612, lon:-122.0192, noaa:"9413450", bay:false },
+  { name:"阿拉米达海岸", nameEn:"Alameda Shoreline",       lat:37.7724, lon:-122.2997, noaa:"9414750", bay:true  },
+  { name:"贝克海滩",    nameEn:"Baker Beach · SF",        lat:37.7957, lon:-122.4836, noaa:"9414290", bay:false }
+];
+
+const WMO = {0:"晴",1:"大部晴",2:"多云",3:"阴",45:"薄雾",48:"雾凇",
+  51:"小毛雨",53:"毛毛雨",55:"大毛雨",61:"小雨",63:"中雨",65:"大雨",
+  71:"小雪",73:"中雪",75:"大雪",80:"阵雨",81:"中阵雨",82:"大阵雨",
+  95:"雷雨",96:"雷暴夹冰雹",99:"大雷暴"};
+const WDIRS = ['北','北东北','东北','东北东','东','东南东','东南','南东南','南','南西南','西南','西南西','西','西北西','西北','北西北'];
+const DAYNAMES = ['周日','周一','周二','周三','周四','周五','周六'];
+
+let selectedDate = null;
+
+// ── PT时间工具 ──
+function ptNow() { return new Date(new Date().toLocaleString('en-US',{timeZone:'America/Los_Angeles'})); }
+function toDS(d)  { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function noaaDS(s){ return s.replace(/-/g,''); }
+
+// ── 日期条 ──
+function buildStrip() {
+  const strip = document.getElementById('dateStrip');
+  strip.innerHTML = '';
+  const base = ptNow(), todayStr = toDS(base);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(base); d.setDate(base.getDate()+i);
+    const ds = toDS(d);
+    const btn = document.createElement('button');
+    btn.className = 'date-btn' + (ds===todayStr?' today':'');
+    btn.dataset.date = ds;
+    btn.innerHTML = `<span class="dn">${DAYNAMES[d.getDay()]}</span><span class="dd">${d.getDate()}</span>`;
+    btn.onclick = () => selectDate(ds);
+    strip.appendChild(btn);
+  }
+  selectDate(todayStr, false);
+}
+
+function selectDate(ds, load=true) {
+  selectedDate = ds;
+  document.querySelectorAll('.date-btn').forEach(b => b.classList.toggle('active', b.dataset.date===ds));
+  if (load) loadAllSpots();
+}
+
+// ── API ──
+async function fetchWeather(lat, lon, ds) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
+    + `&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m,precipitation`
+    + `&wind_speed_unit=ms&timezone=America%2FLos_Angeles&forecast_days=7`;
+  const r = await fetch(url); if (!r.ok) throw new Error('天气API失败');
+  const d = await r.json();
+  return d.hourly.time.map((t,i)=>({
+    t, temp:d.hourly.temperature_2m[i], code:d.hourly.weathercode[i],
+    wind:d.hourly.windspeed_10m[i], wdir:d.hourly.winddirection_10m[i],
+    precip:d.hourly.precipitation[i]
+  })).filter(h=>h.t.startsWith(ds));
+}
+
+async function fetchMarine(lat, lon, ds) {
+  try {
+    const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}`
+      + `&hourly=wave_height,swell_wave_height,wave_period`
+      + `&timezone=America%2FLos_Angeles&forecast_days=7`;
+    const r = await fetch(url); if (!r.ok) return null;
+    const d = await r.json();
+    return d.hourly.time.map((t,i)=>({
+      t, wave:d.hourly.wave_height[i], swell:d.hourly.swell_wave_height[i], period:d.hourly.wave_period[i]
+    })).filter(h=>h.t.startsWith(ds));
+  } catch { return null; }
+}
+
+async function fetchTides(stid, ds) {
+  try {
+    const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter`
+      + `?product=predictions&application=web_services`
+      + `&begin_date=${noaaDS(ds)}&range=26&datum=MLLW&station=${stid}`
+      + `&time_zone=lst_ldt&interval=hilo&units=metric&format=json`;
+    const r = await fetch(url); const d = await r.json();
+    if (d.error||!d.predictions) return [];
+    return d.predictions.filter(p=>p.t.startsWith(ds));
+  } catch { return []; }
+}
+
+// ── 辅助 ──
+function wdir(deg) { return WDIRS[Math.round(deg/22.5)%16]; }
+function bf(ms) {
+  if (ms<1)   return {t:"无风",  c:"ok"};
+  if (ms<3.4) return {t:"微风",  c:"ok"};
+  if (ms<5.5) return {t:"轻风",  c:"ok"};
+  if (ms<8)   return {t:"和风",  c:""};
+  if (ms<10.8)return {t:"清风",  c:"warn"};
+  if (ms<13.9)return {t:"强风",  c:"warn"};
+  return        {t:"大风⚠",c:"bad"};
+}
+function pickH(hours, h) { return hours.find(x=>x.t.endsWith(`T${String(h).padStart(2,'0')}:00`)); }
+function repH(hours)     { return pickH(hours,12)||pickH(hours,13)||pickH(hours,15)||hours[0]; }
+function fmtT(str) {
+  const d = new Date(str.includes('T')?str:str.replace(' ','T'));
+  return d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+function scoreConds(wind,wave,code) {
+  let s=100;
+  if (wind>8) s-=30; else if (wind>5.5) s-=12;
+  if (wave!==null) { if (wave>2) s-=30; else if (wave>1.2) s-=15; }
+  if ([80,81,82,95,96,99,65,63].includes(code)) s-=25;
+  else if ([61].includes(code)) s-=12;
+  if (s>=80) return {cls:'score-great',lbl:'佳'};
+  if (s>=60) return {cls:'score-good', lbl:'良'};
+  if (s>=40) return {cls:'score-fair', lbl:'一般'};
+  return           {cls:'score-poor', lbl:'差'};
+}
+
+// ── 最佳时窗计算 ──
+// 策略：以潮汐转换点为核心，每次高/低潮前后各取1.5h窗口
+// 打分：基础80，风大/浪大/天气差扣分；14-21时段加分（你的钓鱼时间偏好）
+function calcWindows(tides, wHours, mHours, isBay) {
+  if (!tides.length || !wHours.length) return [];
+  const wins = [];
+
+  tides.forEach(tide => {
+    const tStr  = tide.t.replace(' ','T');
+    const tDate = new Date(tStr);
+    const tH    = tDate.getHours() + tDate.getMinutes()/60;
+    const isH   = tide.type === 'H';
+
+    // 前窗：潮转前1.5h → 潮转时刻
+    // 后窗：潮转时刻 → 潮转后1.5h
+    [
+      { label: isH?'高潮前（涨末）':'低潮前（落末）', s: tH-1.5, e: tH   },
+      { label: isH?'高潮后（退初）':'低潮后（涨初）', s: tH,     e: tH+1.5 }
+    ].forEach(seg => {
+      const midH = (seg.s + seg.e) / 2;
+      const clampH = Math.max(0, Math.min(23, Math.round(midH)));
+
+      const wh = pickH(wHours, clampH) || wHours[0];
+      const mh = mHours ? (pickH(mHours, clampH) || mHours[0]) : null;
+
+      const wind = wh ? wh.wind  : 5;
+      const wave = mh ? mh.wave  : (isBay ? 0.15 : null);
+      const code = wh ? wh.code  : 0;
+      const temp = wh ? wh.temp  : null;
+
+      // 评分
+      let score = 80;
+      if (wind > 10) score -= 35; else if (wind > 7) score -= 20; else if (wind > 5) score -= 8;
+      if (!isBay && wave !== null) {
+        if (wave > 2.5) score -= 30; else if (wave > 1.5) score -= 15; else if (wave > 1) score -= 5;
+      }
+      if ([80,81,82,95,96,99,65,63].includes(code)) score -= 20;
+      else if ([61].includes(code)) score -= 8;
+
+      // 时段偏好加分（下午偏晚 + 傍晚 + 夜钓）
+      const isAft   = midH >= 13 && midH < 17;  // 下午
+      const isEve   = midH >= 17 && midH < 20;  // 傍晚
+      const isNight = midH >= 20 && midH <= 23; // 夜钓
+      if (isEve)   score += 8;
+      if (isAft)   score += 4;
+      if (isNight) score += 3;
+
+      // 过滤掉深夜/清晨（0-5点）
+      if (seg.e < 6) return;
+
+      // 显示时间限制在当天有效范围
+      const ds = Math.max(6,  seg.s);
+      const de = Math.min(23.5, seg.e);
+      if (de <= ds) return;
+
+      function hToStr(h) {
+        const hh = Math.floor(h);
+        const mm = h%1 >= 0.5 ? '30' : '00';
+        return `${String(hh).padStart(2,'0')}:${mm}`;
+      }
+
+      const stars = score >= 82 ? '★★★' : score >= 65 ? '★★☆' : '★☆☆';
+      const timeCls = isEve ? 'eve' : isAft ? 'pm' : isNight ? '' : '';
+      const tag     = isEve ? '<span class="tag-eve">傍晚✓</span>'
+                    : isAft ? '<span class="tag-pm">下午✓</span>'
+                    : isNight ? '<span class="tag-night">夜钓</span>' : '';
+      const meta = [
+        `风${wind.toFixed(1)}m/s`,
+        (!isBay && wave !== null) ? `浪${wave.toFixed(1)}m` : null
+      ].filter(Boolean).join(' ');
+
+      wins.push({
+        startH: ds, endH: de,
+        timeStr: `${hToStr(ds)}–${hToStr(de)}`,
+        label: seg.label, tag, meta, stars, score, timeCls,
+        tideLabel: `${isH?'▲高':'▽低'}${parseFloat(tide.v).toFixed(1)}m`
+      });
+    });
+  });
+
+  // 去重（间距<1.2h的只保留高分）+ 最多5条
+  wins.sort((a,b) => b.score - a.score);
+  const kept = [];
+  for (const w of wins) {
+    if (!kept.some(k => Math.abs(k.startH - w.startH) < 1.2)) kept.push(w);
+    if (kept.length >= 5) break;
+  }
+  kept.sort((a,b) => a.startH - b.startH);
+  return kept;
+}
+
+function renderWindows(wins, isBay) {
+  if (!wins.length) return '<span style="color:var(--muted);font-size:0.78rem">潮汐数据不足，无法计算</span>';
+  return wins.map(w => `
+    <div class="window-row">
+      <span class="window-time ${w.timeCls}">${w.timeStr}</span>
+      <span class="window-stars">${w.stars}</span>
+      <span class="window-desc">${w.label}${w.tag}<span class="window-meta">${w.meta}</span></span>
+    </div>`).join('');
+}
+
+// ── 渲染骨架 ──
+function renderSkeleton(spot) {
+  const id = spot.nameEn.replace(/[\s·()]/g,'_');
+  return `
+    <div class="spot-card">
+      <div class="spot-header">
+        <div>
+          <div class="spot-name">${spot.name}</div>
+          <div class="spot-name-en">${spot.nameEn}</div>
+        </div>
+        <div class="score-badge score-good" id="badge-${id}"><span>—</span><span class="sl">状态</span></div>
+      </div>
+      <div class="spot-body" id="body-${id}">
+        <div class="loading-state">加载中<span class="loading-dots"></span></div>
+      </div>
+    </div>`;
+}
+
+// ── 填充卡片 ──
+async function loadSpot(spot, ds) {
+  const id      = spot.nameEn.replace(/[\s·()]/g,'_');
+  const bodyEl  = document.getElementById(`body-${id}`);
+  const badgeEl = document.getElementById(`badge-${id}`);
+
+  try {
+    const [wH, mH, tides] = await Promise.all([
+      fetchWeather(spot.lat, spot.lon, ds),
+      fetchMarine(spot.lat, spot.lon, ds),
+      fetchTides(spot.noaa, ds)
+    ]);
+    if (!wH.length) throw new Error('该日期暂无预报');
+
+    const rw = repH(wH);
+    const rm = mH ? (pickH(mH,12)||mH[0]) : null;
+
+    const temp   = rw.temp, code = rw.code, wind = rw.wind, windD = rw.wdir;
+    const precip = wH.reduce((s,h)=>s+(h.precip||0),0);
+    const waveH  = rm?.wave ?? null, swellH = rm?.swell ?? null, period = rm?.period ?? null;
+
+    const bff = bf(wind);
+    const sc  = scoreConds(wind, waveH, code);
+    badgeEl.className = `score-badge ${sc.cls}`;
+    badgeEl.innerHTML = `<span>${sc.lbl}</span><span class="sl">状态</span>`;
+
+    const wdesc = WMO[code]||'未知';
+    const wcls  = [0,1,2].includes(code)?'ok':([80,81,82,95,96,99,65].includes(code)?'bad':'');
+
+    const waveRow = waveH !== null ? `
+      <div class="data-row">
+        <div class="data-icon">🌊</div>
+        <div class="data-content">
+          <div class="data-label">海浪 / 涌浪（正午）</div>
+          <div class="data-value">
+            浪高 <span class="${waveH>1.5?'warn':'hi'}">${waveH.toFixed(1)}m</span>
+            ${swellH?`/ 涌 ${swellH.toFixed(1)}m`:''}
+            ${period?`<span style="color:var(--muted);font-size:0.8em"> 周期${period.toFixed(0)}s</span>`:''}
+          </div>
+        </div>
+      </div>` : `
+      <div class="data-row">
+        <div class="data-icon">🌊</div>
+        <div class="data-content">
+          <div class="data-label">海浪</div>
+          <div class="data-value" style="color:var(--muted)">湾内，以潮流为主</div>
+        </div>
+      </div>`;
+
+    const tidePills = tides.length
+      ? tides.map(t=>`<span class="tide-pill ${t.type==='H'?'high':''}">${t.type==='H'?'▲高':'▽低'} ${fmtT(t.t)} ${parseFloat(t.v).toFixed(1)}m</span>`).join('')
+      : '<span style="color:var(--muted);font-size:0.75rem">无数据</span>';
+
+    const windows = calcWindows(tides, wH, mH, spot.bay);
+    const winHTML = renderWindows(windows, spot.bay);
+
+    const sumParts = [wdesc, `${bff.t} ${wdir(windD)}风 ${wind.toFixed(1)}m/s`,
+      waveH!==null?`浪${waveH.toFixed(1)}m`:null,
+      precip>0.5?`全天降水约${precip.toFixed(1)}mm`:null
+    ].filter(Boolean).join('，');
+
+    bodyEl.innerHTML = `
+      <div class="data-row">
+        <div class="data-icon">🌤</div>
+        <div class="data-content">
+          <div class="data-label">天气 / 气温（正午）</div>
+          <div class="data-value">
+            <span class="${wcls}">${wdesc}</span>
+            · <span class="hi">${temp.toFixed(0)}°C</span>
+            ${precip>0.5?`<span class="warn"> · 降水${precip.toFixed(1)}mm</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="data-row">
+        <div class="data-icon">💨</div>
+        <div class="data-content">
+          <div class="data-label">风力 / 风向（正午）</div>
+          <div class="data-value">
+            <span class="${bff.c}">${bff.t}</span>
+            · ${wdir(windD)}风
+            · <span class="hi">${wind.toFixed(1)} m/s</span>
+            <span style="color:var(--muted);font-size:0.78em"> (${(wind*1.944).toFixed(0)}kt)</span>
+          </div>
+        </div>
+      </div>
+      ${waveRow}
+      <div class="data-row">
+        <div class="data-icon">🌀</div>
+        <div class="data-content">
+          <div class="data-label">今日潮汐（NOAA · MLLW）</div>
+          <div class="tide-list">${tidePills}</div>
+        </div>
+      </div>
+      <div class="windows-section">
+        <div class="windows-label">⏱ 推荐出钓时窗（★越多越好）</div>
+        ${winHTML}
+      </div>
+      <div class="summary-bar">${sumParts}。</div>
+    `;
+  } catch(e) {
+    bodyEl.innerHTML = `<div class="error-state">⚠ ${e.message}</div>`;
+  }
+}
+
+function loadAllSpots() {
+  if (!selectedDate) return;
+  const btn = document.getElementById('refreshBtn');
+  btn.disabled = true; btn.textContent = '↻ 加载中...';
+
+  document.getElementById('spotsGrid').innerHTML = SPOTS.map(renderSkeleton).join('');
+
+  Promise.all(SPOTS.map(s => loadSpot(s, selectedDate))).then(() => {
+    const pt  = ptNow(), todayStr = toDS(pt);
+    const lbl = selectedDate === todayStr ? '今天'
+      : DAYNAMES[new Date(selectedDate+'T12:00:00').getDay()];
+    document.getElementById('last-updated').textContent =
+      `${lbl} ${selectedDate} · 更新 ${pt.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})} PT`;
+    btn.disabled = false; btn.textContent = '↻ 刷新';
+  });
+}
+
+buildStrip();
+</script>
+</body>
+</html>
