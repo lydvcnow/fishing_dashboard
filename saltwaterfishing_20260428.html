@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>湾区海钓简报 · 2026-04-28</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --deep:#051820;--foam:#b8dce8;--wave:#4fa3c0;--gold:#e8c06a;
+    --amber:#d4872a;--green:#5eb87a;--red:#e07060;--text:#d8eef6;
+    --muted:#7aadc0;--border:rgba(79,163,192,0.2);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--deep);color:var(--text);font-family:'Noto Serif SC',serif;
+        min-height:100vh;line-height:1.6}
+  body::before{content:'';position:fixed;inset:0;
+    background:radial-gradient(ellipse at 20% 80%,rgba(10,42,58,.8) 0%,transparent 60%),
+               radial-gradient(ellipse at 80% 20%,rgba(5,24,32,.9) 0%,transparent 50%),
+               linear-gradient(180deg,#051820 0%,#0a2a3a 40%,#0d3347 100%);z-index:-1}
+
+  header{padding:2rem 1.5rem 1.2rem;text-align:center;border-bottom:1px solid var(--border)}
+  .hfish{font-size:1.8rem;display:block;margin-bottom:.3rem;filter:drop-shadow(0 0 10px rgba(79,163,192,.5))}
+  h1{font-size:1.55rem;font-weight:700;color:var(--foam);letter-spacing:.08em}
+  .meta{color:var(--muted);font-size:.72rem;margin-top:.3rem;font-family:'JetBrains Mono',monospace}
+
+  /* WEATHER GRID */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+         gap:1.1rem;padding:1.3rem 1.1rem;max-width:1300px;margin:0 auto}
+  .spot-card{background:linear-gradient(135deg,rgba(13,51,71,.85),rgba(10,42,58,.92));
+              border:1px solid var(--border);border-radius:4px;overflow:hidden}
+  .spot-header{padding:.9rem 1.1rem .75rem;border-bottom:1px solid var(--border);
+                display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+  .spot-name{font-size:1rem;font-weight:700;color:var(--foam)}
+  .spot-name-en{font-size:.65rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:.08rem}
+  .badge{flex-shrink:0;width:38px;height:38px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          font-size:.8rem;font-weight:700;border:2px solid currentColor}
+  .badge-good{color:var(--green)}.badge-ok{color:var(--gold)}
+  .badge-fair{color:var(--amber)}.badge-poor{color:var(--red)}
+  .spot-body{padding:.9rem 1.1rem}
+  .data-row{display:flex;align-items:flex-start;margin-bottom:.65rem;gap:.55rem}
+  .icon{font-size:.95rem;width:1.3rem;flex-shrink:0;text-align:center;margin-top:.05rem}
+  .label{font-size:.63rem;color:var(--muted);letter-spacing:.06em;
+          font-family:'JetBrains Mono',monospace;margin-bottom:.06rem}
+  .value{font-size:.87rem;color:var(--text)}
+  .hi{color:var(--gold);font-weight:600}.ok{color:var(--green)}
+  .warn{color:var(--amber)}.bad{color:var(--red)}.muted{color:var(--muted);font-size:.82em}
+  .tide-list{display:flex;flex-wrap:wrap;gap:.28rem;margin-top:.2rem}
+  .tide-pill{background:rgba(79,163,192,.08);border:1px solid rgba(79,163,192,.25);
+              border-radius:2px;padding:.14rem .38rem;
+              font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--wave)}
+  .tide-pill.high{border-color:rgba(232,192,106,.4);color:var(--gold);background:rgba(232,192,106,.07)}
+  .no-data{color:var(--muted);font-size:.75rem}
+  .windows-section{margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border)}
+  .win-row{display:flex;align-items:baseline;gap:.42rem;margin-bottom:.32rem}
+  .win-time{font-family:'JetBrains Mono',monospace;font-size:.73rem;color:var(--wave);min-width:100px;flex-shrink:0}
+  .win-time.eve{color:var(--green)}.win-time.aft{color:var(--wave)}
+  .win-stars{color:var(--gold);font-size:.66rem;letter-spacing:-1px;flex-shrink:0}
+  .win-desc{font-size:.77rem;color:var(--text)}
+  .spot-card.error{padding:1rem 1.1rem;color:var(--red)}
+
+  /* FISH REPORT */
+  .fish-section{max-width:1300px;margin:0 auto;padding:0 1.1rem 2rem}
+  .fish-card{background:linear-gradient(135deg,rgba(13,51,71,.85),rgba(10,42,58,.92));
+              border:1px solid var(--border);border-radius:4px;padding:1.3rem 1.5rem}
+  .fish-card h2{font-size:1.05rem;color:var(--foam);margin-bottom:1rem;
+                 padding-bottom:.6rem;border-bottom:1px solid var(--border)}
+  .fish-card p{font-size:.88rem;color:var(--text);margin-bottom:.8rem;line-height:1.7}
+  .fish-card p:last-child{margin-bottom:0}
+  .source-note{font-size:.68rem;color:var(--muted);font-family:'JetBrains Mono',monospace;
+                margin-top:.9rem;padding-top:.6rem;border-top:1px solid var(--border)}
+
+  footer{text-align:center;padding:1rem;color:var(--muted);font-size:.68rem;
+          font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <span class="hfish">🎣</span>
+  <h1>湾区海钓简报</h1>
+  <div class="meta">2026-04-28 · 生成于 15:07 PT</div>
+</header>
+
+<div class="grid">
+
+<div class="spot-card">
+  <div class="spot-header">
+    <div>
+      <div class="spot-name">半月湾</div>
+      <div class="spot-name-en">Half Moon Bay</div>
+    </div>
+    <div class="badge badge-good">佳</div>
+  </div>
+  <div class="spot-body">
+    <div class="data-row">
+      <span class="icon">🌤</span>
+      <div><div class="label">天气 / 气温（正午）</div>
+      <div class="value"><span class="ok">多云</span> · <span class="hi">16°C</span></div></div>
+    </div>
+    <div class="data-row">
+      <span class="icon">💨</span>
+      <div><div class="label">风力 / 风向（正午）</div>
+      <div class="value"><span class="ok">微风</span> · 西北西风 · <span class="hi">2.5 m/s</span>
+      <span class="muted"> (5kt)</span></div></div>
+    </div>
+    
+        <div class="data-row">
+          <span class="icon">🌊</span>
+          <div><div class="label">海浪 / 涌浪</div>
+          <div class="value">浪高 <span class="hi">1.3m</span>
+          / 涌 0.9m
+          <span class="muted"> 周期8s</span></div></div>
+        </div>
+    <div class="data-row">
+      <span class="icon">🌀</span>
+      <div><div class="label">今日潮汐（NOAA · MLLW）</div>
+      <div class="tide-list"><span class="tide-pill ">▽低 04:13 0.2m</span><span class="tide-pill high">▲高 10:26 1.4m</span><span class="tide-pill ">▽低 15:57 0.3m</span><span class="tide-pill high">▲高 22:35 1.7m</span></div></div>
+    </div>
+    <div class="windows-section">
+      <div class="label">⏱ 推荐出钓时窗</div>
+      
+        <div class="win-row">
+          <span class="win-time ">08:30–10:00</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮前 <span class="muted">风1.7m/s 浪1.3m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">10:00–11:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮后 <span class="muted">风2.6m/s 浪1.3m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time aft">14:00–15:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">低潮前 下午✓ <span class="muted">风3.8m/s 浪1.3m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time aft">15:30–17:00</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">低潮后 下午✓ <span class="muted">风3.9m/s 浪1.3m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">21:00–22:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮前 夜钓 <span class="muted">风1.7m/s 浪1.3m</span></span>
+        </div>
+    </div>
+  </div>
+</div>
+
+<div class="spot-card">
+  <div class="spot-header">
+    <div>
+      <div class="spot-name">圣克鲁斯码头</div>
+      <div class="spot-name-en">Santa Cruz Wharf</div>
+    </div>
+    <div class="badge badge-good">佳</div>
+  </div>
+  <div class="spot-body">
+    <div class="data-row">
+      <span class="icon">🌤</span>
+      <div><div class="label">天气 / 气温（正午）</div>
+      <div class="value"><span class="ok">晴</span> · <span class="hi">17°C</span></div></div>
+    </div>
+    <div class="data-row">
+      <span class="icon">💨</span>
+      <div><div class="label">风力 / 风向（正午）</div>
+      <div class="value"><span class="ok">轻风</span> · 西风 · <span class="hi">3.4 m/s</span>
+      <span class="muted"> (7kt)</span></div></div>
+    </div>
+    
+        <div class="data-row">
+          <span class="icon">🌊</span>
+          <div><div class="label">海浪 / 涌浪</div>
+          <div class="value">浪高 <span class="hi">1.1m</span>
+          / 涌 0.9m
+          <span class="muted"> 周期9s</span></div></div>
+        </div>
+    <div class="data-row">
+      <span class="icon">🌀</span>
+      <div><div class="label">今日潮汐（NOAA · MLLW）</div>
+      <div class="tide-list"><span class="tide-pill ">▽低 03:26 0.2m</span><span class="tide-pill high">▲高 09:20 1.2m</span><span class="tide-pill ">▽低 15:07 0.3m</span><span class="tide-pill high">▲高 21:28 1.6m</span></div></div>
+    </div>
+    <div class="windows-section">
+      <div class="label">⏱ 推荐出钓时窗</div>
+      
+        <div class="win-row">
+          <span class="win-time ">07:30–09:00</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮前 <span class="muted">风0.7m/s 浪1.0m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">09:00–10:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮后 <span class="muted">风1.9m/s 浪1.0m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time aft">13:30–15:00</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">低潮前 下午✓ <span class="muted">风5.7m/s 浪1.1m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">19:30–21:00</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮前 夜钓 <span class="muted">风1.4m/s 浪1.2m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">21:00–22:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮后 夜钓 <span class="muted">风1.8m/s 浪1.2m</span></span>
+        </div>
+    </div>
+  </div>
+</div>
+
+<div class="spot-card">
+  <div class="spot-header">
+    <div>
+      <div class="spot-name">阿拉米达海岸</div>
+      <div class="spot-name-en">Alameda Shoreline</div>
+    </div>
+    <div class="badge badge-good">佳</div>
+  </div>
+  <div class="spot-body">
+    <div class="data-row">
+      <span class="icon">🌤</span>
+      <div><div class="label">天气 / 气温（正午）</div>
+      <div class="value"><span class="ok">大部晴</span> · <span class="hi">18°C</span></div></div>
+    </div>
+    <div class="data-row">
+      <span class="icon">💨</span>
+      <div><div class="label">风力 / 风向（正午）</div>
+      <div class="value"><span class="ok">微风</span> · 北西北风 · <span class="hi">1.0 m/s</span>
+      <span class="muted"> (2kt)</span></div></div>
+    </div>
+    
+        <div class="data-row">
+          <span class="icon">🌊</span>
+          <div><div class="label">海浪 / 涌浪</div>
+          <div class="value">浪高 <span class="hi">0.4m</span>
+          / 涌 0.2m
+          <span class="muted"> 周期6s</span></div></div>
+        </div>
+    <div class="data-row">
+      <span class="icon">🌀</span>
+      <div><div class="label">今日潮汐（NOAA · MLLW）</div>
+      <div class="tide-list"><span class="tide-pill ">▽低 04:47 0.1m</span><span class="tide-pill high">▲高 10:51 1.6m</span><span class="tide-pill ">▽低 16:36 0.3m</span><span class="tide-pill high">▲高 23:03 2.0m</span></div></div>
+    </div>
+    <div class="windows-section">
+      <div class="label">⏱ 推荐出钓时窗</div>
+      
+        <div class="win-row">
+          <span class="win-time ">06:00–06:00</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">低潮后 <span class="muted">风2.0m/s</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">09:00–10:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮前 <span class="muted">风1.2m/s</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time aft">15:00–16:30</span>
+          <span class="win-stars">★★★</span>
+          <span class="win-desc">低潮前 下午✓ <span class="muted">风5.0m/s</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time eve">16:30–18:00</span>
+          <span class="win-stars">★★★</span>
+          <span class="win-desc">低潮后 傍晚✓ <span class="muted">风4.7m/s</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">21:30–23:00</span>
+          <span class="win-stars">★★★</span>
+          <span class="win-desc">高潮前 夜钓 <span class="muted">风3.5m/s</span></span>
+        </div>
+    </div>
+  </div>
+</div>
+
+<div class="spot-card">
+  <div class="spot-header">
+    <div>
+      <div class="spot-name">贝克海滩</div>
+      <div class="spot-name-en">Baker Beach · SF</div>
+    </div>
+    <div class="badge badge-good">佳</div>
+  </div>
+  <div class="spot-body">
+    <div class="data-row">
+      <span class="icon">🌤</span>
+      <div><div class="label">天气 / 气温（正午）</div>
+      <div class="value"><span class="ok">多云</span> · <span class="hi">16°C</span></div></div>
+    </div>
+    <div class="data-row">
+      <span class="icon">💨</span>
+      <div><div class="label">风力 / 风向（正午）</div>
+      <div class="value"><span class="ok">微风</span> · 西风 · <span class="hi">2.2 m/s</span>
+      <span class="muted"> (4kt)</span></div></div>
+    </div>
+    
+        <div class="data-row">
+          <span class="icon">🌊</span>
+          <div><div class="label">海浪 / 涌浪</div>
+          <div class="value">浪高 <span class="hi">0.9m</span>
+          / 涌 0.6m
+          <span class="muted"> 周期8s</span></div></div>
+        </div>
+    <div class="data-row">
+      <span class="icon">🌀</span>
+      <div><div class="label">今日潮汐（NOAA · MLLW）</div>
+      <div class="tide-list"><span class="tide-pill ">▽低 04:13 0.2m</span><span class="tide-pill high">▲高 10:26 1.4m</span><span class="tide-pill ">▽低 15:57 0.3m</span><span class="tide-pill high">▲高 22:35 1.7m</span></div></div>
+    </div>
+    <div class="windows-section">
+      <div class="label">⏱ 推荐出钓时窗</div>
+      
+        <div class="win-row">
+          <span class="win-time ">08:30–10:00</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮前 <span class="muted">风1.7m/s 浪0.9m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">10:00–11:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮后 <span class="muted">风1.9m/s 浪0.9m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time aft">14:00–15:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">低潮前 下午✓ <span class="muted">风5.3m/s 浪0.8m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">21:00–22:30</span>
+          <span class="win-stars">★★★</span>
+          <span class="win-desc">高潮前 夜钓 <span class="muted">风4.7m/s 浪0.9m</span></span>
+        </div>
+        <div class="win-row">
+          <span class="win-time ">22:30–23:30</span>
+          <span class="win-stars">★★☆</span>
+          <span class="win-desc">高潮后 <span class="muted">风4.6m/s 浪0.9m</span></span>
+        </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="fish-section">
+  <div class="fish-card">
+    <h2>🐟 近期鱼情（AI 分析）</h2>
+    <p>未配置GEMINI_API_KEY，跳过AI分析。</p>
+    <div class="source-note">数据来源：NorCal Fish Reports · Saltwater Reports · 由 gemini-2.0-flash 分析生成</div>
+  </div>
+</div>
+
+<footer>天气/海浪：Open-Meteo · 潮汐：NOAA CO-OPS · 鱼情：NorCal Fish Reports · 时区：America/Los_Angeles</footer>
+</body>
+</html>
