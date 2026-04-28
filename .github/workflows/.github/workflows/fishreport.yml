@@ -1,0 +1,37 @@
+name: 每日鱼情简报
+
+on:
+  schedule:
+    - cron: '0 13 * * *'  # UTC 13:00 = PT 5:00AM 夏令时
+  workflow_dispatch:       # 允许手动触发测试
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests pytz
+
+      - name: Run fish report
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python fishreport.py
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/fishing_report.html
+          git diff --staged --quiet || git commit -m "每日鱼情更新 $(date -u '+%Y-%m-%d')"
+          git push
